@@ -1,8 +1,8 @@
 <script>
 	import { onMount, afterUpdate } from 'svelte';
-	import data from '../common/data/Layoutmenudata';
+	import data from '@data/Layoutmenudata';
 	import { page } from '$app/stores';
-	import LucideIcon from '../common/components/LucideIcon.svelte';
+	import LucideIcon from '@components/LucideIcon.svelte';
 	import { _ } from 'svelte-i18n';
 	import { createPopper } from '@popperjs/core';
 

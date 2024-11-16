@@ -1,7 +1,7 @@
 <script>
 	import { browser } from '$app/environment';
-	import LucideIcon from '../common/components/LucideIcon.svelte';
-	import Drawer from '../common/components/Drawer.svelte';
+	import LucideIcon from '@components/LucideIcon.svelte';
+	import Drawer from '@components/Drawer.svelte';
 	import { createEventDispatcher, onDestroy, onMount } from 'svelte';
 	import { OverlayScrollbars } from 'overlayscrollbars';
 

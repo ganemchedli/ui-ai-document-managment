@@ -1,9 +1,9 @@
 <script>
 	import { onMount, afterUpdate, onDestroy } from 'svelte';
 	import { browser } from '$app/environment';
-	import data from '../common/data/Layoutmenudata';
+	import data from '@data/Layoutmenudata';
 	import { page } from '$app/stores';
-	import LucideIcon from '../common/components/LucideIcon.svelte';
+	import LucideIcon from '@components/LucideIcon.svelte';
 	import { _ } from 'svelte-i18n';
 
 	// after routeing complete call afterUpdate function

@@ -1,12 +1,12 @@
 <script>
 	import { createEventDispatcher } from 'svelte';
-	import Drawer from '../common/components/Drawer.svelte';
-	import LightDark from '../common/components/LightDark.svelte';
-	import LucideIcon from '../common/components/LucideIcon.svelte';
-	import MyCartDropdown from '../common/components/MyCartDropdown.svelte';
-	import NotificationDropdown from '../common/components/NotificationDropdown.svelte';
-	import ProfileDropdown from '../common/components/ProfileDropdown.svelte';
-	import LanguageDropdown from '../common/components/languageDropdown.svelte';
+	import Drawer from '@components/Drawer.svelte';
+	import LightDark from '@components/LightDark.svelte';
+	import LucideIcon from '@components/LucideIcon.svelte';
+	import MyCartDropdown from '@components/MyCartDropdown.svelte';
+	import NotificationDropdown from '@components/NotificationDropdown.svelte';
+	import ProfileDropdown from '@components/ProfileDropdown.svelte';
+	import LanguageDropdown from '@components/languageDropdown.svelte';
 	import { browser } from '$app/environment';
 
 	const dispatch = createEventDispatcher();
@@ -113,9 +113,6 @@
 
 					<LightDark />
 
-					<MyCartDropdown on:toggle={toggleCartmenu} />
-
-					<NotificationDropdown />
 
 					<div class="relative items-center hidden h-header md:flex">
 						<button
