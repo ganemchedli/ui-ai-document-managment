@@ -1,8 +1,8 @@
 const AppConfig = {
 	appName: 'Ai Document Managment',
 	appLogo: '',
-	accessTokenName: 'ai_doc_managment_access_token',
-	profileTokenName: 'ai_doc_managment__profile_details_token',
+	accessTokenName: 'access_token',
+	profileTokenName: 'auth_user',
 	defaultHomeRoute: '/settings',
 	defaultSignInRoute: '/account/login',
 	mainWebsiteRoute: '',

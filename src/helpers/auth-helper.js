@@ -15,10 +15,12 @@ import { get } from 'svelte/store';
 export const setDataForSignInUser = (accessToken, profileData) => {
 	if (typeof window !== 'undefined') {
 		// ** set user access token
-		localStorage.setItem(AppConfig.accessTokenName, accessToken);
+		sessionStorage.setItem(AppConfig.accessTokenName, accessToken);
 
 		// ** save user data
-		localStorage.setItem(AppConfig.profileTokenName, profileData);
+		sessionStorage.setItem(AppConfig.profileTokenName, JSON.stringify(profileData));
+
+
 	}
 };
 
@@ -26,10 +28,10 @@ export const setDataForSignInUser = (accessToken, profileData) => {
 export const emptyUserDataAfterLogOut = () => {
 	if (typeof window !== 'undefined') {
 		// ** set user access token
-		localStorage.removeItem(AppConfig.accessTokenName);
+		sessionStorage.removeItem(AppConfig.accessTokenName);
 
 		// ** save user data
-		localStorage.removeItem(AppConfig.profileTokenName);
+		sessionStorage.removeItem(AppConfig.profileTokenName);
 	}
 };
 
@@ -42,7 +44,7 @@ export const handleLogOut = () => {
 // @ check if the user is authed
 export const checkUserIsAuthenticated = () => {
 	if (typeof window !== 'undefined') {
-		const token = localStorage.getItem(AppConfig.accessTokenName);
+		const token = sessionStorage.getItem(AppConfig.accessTokenName);
 		return token !== null;
 	}
 	return false;
@@ -51,7 +53,7 @@ export const checkUserIsAuthenticated = () => {
 // @ extract the access token from local storage
 export const extractAccessToken = () => {
 	if (typeof window !== 'undefined') {
-		const token = localStorage.getItem(AppConfig.accessTokenName);
+		const token = sessionStorage.getItem(AppConfig.accessTokenName);
 		return token;
 	}
 	return null;
@@ -60,7 +62,7 @@ export const extractAccessToken = () => {
 // @ extract the access token from local storage
 export const extractUserProfileData = () => {
 	if (typeof window !== 'undefined') {
-		const token = localStorage.getItem(AppConfig.profileTokenName);
+		const token = sessionStorage.getItem(AppConfig.profileTokenName);
 		try {
 			return JSON.parse(token);
 		} catch (error) {
@@ -73,7 +75,7 @@ export const extractUserProfileData = () => {
 // @ the header will be used in each request
 export const headerWithMainToken = () => {
 	if (typeof window !== 'undefined') {
-		const token = localStorage.getItem(AppConfig.accessTokenName);
+		const token = sessionStorage.getItem(AppConfig.accessTokenName);
 		try {
 			return {
 				authorization: `Bearer ${token}`

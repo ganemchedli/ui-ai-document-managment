@@ -51,6 +51,7 @@
 		"svelte-flatpickr": "^3.3.4",
 		"svelte-i18n": "^4.0.0",
 		"svelte-steps-wizard": "^0.0.3",
+		"svelte-toasts": "^1.1.2",
 		"sweetalert2": "^11.10.2",
 		"swiper": "^11.0.5"
 	}

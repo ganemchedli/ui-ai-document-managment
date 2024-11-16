@@ -1,88 +1,16 @@
 <script>
+	// axios
+	import { OAuthLinks } from '@config/axios';
+	// Svelte imports
+	import { onMount, onDestroy } from 'svelte';
+	// dependencies
 	import HeadTitle from '@components/HeadTitle.svelte';
-	// translations
-	import { t } from 'svelte-i18n';
 	import { classList } from 'svelte-body';
 	import { browser } from '$app/environment';
-	import { goto } from '$app/navigation';
-	import { OAuthLinks } from '@config/axios';
-	import { setDataForSignInUser } from '@helpers/auth-helper';
 
 	if (browser) {
 		document.body.setAttribute('class', '');
 	}
-
-	// redirect to home page
-	onMount(async () => {
-		// retrieve the queries from path
-		const queryParams = new URLSearchParams(window.location.search);
-		const status = queryParams.get('status');
-
-		// 1. internal_server_error
-		if (status === 'internal_server_error') {
-			showAlert = true;
-			alertMessage = $t('500ServerError');
-			showErrorToast = $t('Ops!', $t('500ServerError'), 'top-center');
-		}
-
-		// 2. email_already_used
-		else if (status === 'email_already_used') {
-			showAlert = true;
-			alertMessage = $t('emailAlreadyUsedByAnOtherAccount');
-			showErrorToast = $t('Ops!', $t('emailAlreadyUsedByAnOtherAccount'), 'top-center');
-		}
-
-		// 3. email_already_used
-		else if (status === 'unauthorized_scopes') {
-			showAlert = true;
-			alertMessage = $t('googleConnectionDenied');
-			showErrorToast = $t(
-				'Ops!',
-				$t('googleConnectionDeniedMakeSureAcceptAccessToInformations'),
-				'top-center'
-			);
-		}
-
-		// 4. account is suspended
-		else if (status === 'account_suspended') {
-			showAlert = true;
-			alertMessage = $t('yourAccountIsSuspendedPleaseContactCustomerSupportService');
-			showErrorToast = $t(
-				'Ops!',
-				$t('yourAccountIsSuspendedPleaseContactCustomerSupportService'),
-				'top-center'
-			);
-		}
-
-		// check for success
-		else if (status === 'success') {
-			spinning = true;
-			const token = queryParams.get('token');
-			const avatar = queryParams.get('avatar');
-			const fullName = queryParams.get('fullName');
-			const title = queryParams.get('title');
-			const timeZone = queryParams.get('timeZone');
-			const language = queryParams.get('language');
-
-			// set user data
-			setDataForSignInUser(token, {
-				avatar,
-				fullName,
-				language,
-				title,
-				timeZone
-			});
-
-			// set translation
-
-			// navigate to the home page
-			goto('/');
-
-			// finish the spinning
-			spinning = false;
-		}
-	});
-
 </script>
 
 <svelte:body
@@ -250,7 +178,6 @@
 				<img src="/assets/images/logo-light.png" alt="" class="hidden h-6 mx-auto dark:block" />
 				<img src="/assets/images/logo-dark.png" alt="" class="block h-6 mx-auto dark:hidden" />
 			</a>
-
 			<div class="mt-8 text-center">
 				<h4 class="mb-1 text-custom-500 dark:text-custom-500">Welcome Back !</h4>
 				<p class="text-slate-500 dark:text-zink-200">Sign in to continue to Tailwick.</p>
@@ -264,7 +191,7 @@
 					}}><i class="ri-google-fill pr-5"></i>Sign in with Google</button
 				>
 			</div>
-			<div class="mt-10">
+			<!-- <div class="mt-10">
 				<button
 					type="submit"
 					class="w-full text-black btn bg-[#f2f3f6] border-none hover:text-white hover:bg-custom-600 hover:border-custom-600 focus:text-white focus:bg-custom-600 focus:border-custom-600 focus:ring focus:ring-custom-100 active:text-white active:bg-custom-600 active:border-custom-600 active:ring active:ring-custom-100 dark:ring-custom-400/20"
@@ -272,7 +199,7 @@
 						window.location.href = OAuthLinks.outlookLink;
 					}}><i class="ri-windows-line pr-5"></i>Sign in with Outlook</button
 				>
-			</div>
+			</div> -->
 		</div>
 	</div>
 </div>

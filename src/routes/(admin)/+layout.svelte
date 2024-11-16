@@ -33,7 +33,7 @@
 
 	onMount(() => {
 		if (browser) {
-			var user = sessionStorage.getItem('authuser');
+			var user = sessionStorage.getItem('auth_user');
 			if (!user || user == null) {
 				goto('/account/login'); // Redirect to login if not authenticated
 				return false;

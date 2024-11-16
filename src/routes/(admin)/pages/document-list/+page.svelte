@@ -3,7 +3,7 @@
 	import Breadcrumb from "@components/Breadcrumb.svelte";
 	import LucideIcon from "@components/LucideIcon.svelte";
 	import Modal from "@components/Modal.svelte";
-    import employeeList from "../@data/employee"
+    import employeeList from "@data/employee"
     import Flatpickr from 'svelte-flatpickr';
     import 'flatpickr/dist/flatpickr.css';
 
