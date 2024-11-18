@@ -3,19 +3,25 @@
 	import Breadcrumb from '@components/Breadcrumb.svelte';
 	import LucideIcon from '@components/LucideIcon.svelte';
 	import Modal from '@components/Modal.svelte';
-	import employeeList from '@data/employee';
 	import Dropzone from 'svelte-file-dropzone';
 	import { t } from 'svelte-i18n';
 	import 'flatpickr/dist/flatpickr.css';
 	import { showErrorToast, showSuccessToast } from '@toasts';
-
-	let preview = '/assets/images/users/user-dummy-img.jpg';
+	import { onMount } from 'svelte';
+	import axios from '@config/axios';
+	import { headerWithMainToken } from '@helpers/auth-helper';
 	let file = null; // Single file reference
+	let fileName = '';
+	let description = '';
+	let eventNotFound = false;
+	let eventAlreadyCanceled = false;
+	let documentToDelete = null;
 	let fileRequest = {
 		uploadfile: null,
 		assigned_name: '',
 		description: ''
 	};
+	let headTitle = $t('docuemntsNotFound'); // TODO add translations
 
 	const handleFilesSelect = (event) => {
 		const selectedFile = event.detail.acceptedFiles[0]; // Only allow one file
@@ -31,24 +37,6 @@
 		filePreview = null;
 	};
 
-	const uploadfile = () => {
-		const fileInput = document.querySelector('#profile-img-file-input');
-		const file = fileInput.files[0];
-		const reader = new FileReader();
-
-		reader.addEventListener(
-			'load',
-			function () {
-				preview = reader.result;
-			},
-			false
-		);
-
-		if (file) {
-			reader.readAsDataURL(file);
-		}
-	};
-
 	let isDeleteModal = false;
 	const toggleDelete = () => (isDeleteModal = !isDeleteModal);
 
@@ -57,14 +45,15 @@
 
 	let documentList = [];
 	const fetchDocuments = async () => {
-		loading = true;
 		try {
-			const res = await axios.get(`/docuements/all`, {
+			const res = await axios.get(`/documents/all`, {
 				headers: headerWithMainToken()
 			});
+
 			if (res?.status === 200) {
-				documentList = res?.data?.item;
+				documentList = res.data.items;
 			}
+
 			// content
 		} catch (error) {
 			const status = error?.response?.status;
@@ -82,13 +71,11 @@
 				eventNotFound = true;
 			}
 		}
-		loading = false;
 	};
 
 	const deleteDocument = async () => {
 		try {
-			const res = await axios.delete(`/documents/delete/`, {
-				params: id,
+			const res = await axios.delete(`/documents/delete/${documentToDelete}`, {
 				headers: headerWithMainToken()
 			});
 			if (res?.status === 200 || res?.status === 204) {
@@ -139,14 +126,28 @@
 		}
 	};
 
-	const addDocument = async () => {
+	const addDocument = async (e) => {
+		e.preventDefault();
+
+		const formData = new FormData();
+		formData.append('name', fileName || 'Untitled');
+		formData.append('description', description);
+		formData.append('file', file); // Append the single file
+
 		try {
-			const res = await axios.post(`/documents/create`, fileRequest, {
+			const res = await axios.post(`/documents/create`, formData, {
 				headers: headerWithMainToken()
 			});
 			if (res?.status === 200 || res?.status === 204) {
 				showSuccessToast('Done!', $t('docuementUpdatedSuccessfully'), 'top-center');
 			}
+			// Reset form after successful submission
+			fileName = '';
+			description = '';
+			file = null;
+
+			toggleAddModal();
+			fetchDocuments();
 		} catch (error) {
 			const status = error?.response?.status;
 			// 1.
@@ -157,6 +158,14 @@
 			}
 		}
 	};
+
+	const confirmDelete = (id) => {
+		documentToDelete = id;
+		toggleDelete(); // Open the delete confirmation modal
+	};
+	onMount(() => {
+		fetchDocuments();
+	});
 </script>
 
 <HeadTitle title="Sellers" />
@@ -167,7 +176,9 @@
 	<div class="card" id="employeeTable">
 		<div class="card-body">
 			<div class="flex items-center gap-3 mb-4">
-				<h6 class="text-15 grow">Documents (<b class="total-Employs">{documentList.length}</b>)</h6>
+				<h6 class="text-15 grow">
+					Documents (<b class="total-Employs">{documentList?.length}</b>)
+				</h6>
 				<div class="shrink-0">
 					<a
 						href="#!"
@@ -219,73 +230,80 @@
 						</tr>
 					</thead>
 					<tbody class="list" id="employeeList">
-						{#each documentList as doc}
-							<tr>
-								<td
-									class="px-3.5 py-2.5 first:pl-5 last:pr-5 border-y border-slate-200 dark:border-zink-500 ID"
-									><a
-										href="#!"
-										class="transition-all duration-150 ease-linear text-custom-500 hover:text-custom-600"
-										>{doc.id}</a
-									></td
-								>
-								<td
-									class="px-3.5 py-2.5 first:pl-5 last:pr-5 border-y border-slate-200 dark:border-zink-500 Name"
-								>
-									<a href="#!" class="flex items-center gap-3">
-										<div class="size-6 rounded-full shrink-0 bg-slate-100">
-											<img src={doc.original_name} alt="" class="h-6 rounded-full" />
-										</div>
-										<h6 class="grow">{doc.assigned_name}</h6>
-									</a>
-								</td>
-								<td
-									class="px-3.5 py-2.5 first:pl-5 last:pr-5 border-y border-slate-200 dark:border-zink-500 Role"
-									>{doc.description}</td
-								>
-								<td
-									class="px-3.5 py-2.5 first:pl-5 last:pr-5 border-y border-slate-200 dark:border-zink-500 Email"
-									>{doc.file_extension}</td
-								>
-								<td
-									class="px-3.5 py-2.5 first:pl-5 last:pr-5 border-y border-slate-200 dark:border-zink-500 Phone"
-									>{doc.file_size}</td
-								>
-								<td
-									class="px-3.5 py-2.5 first:pl-5 last:pr-5 border-y border-slate-200 dark:border-zink-500 Country"
-									>{doc.storage_provider}</td
-								>
-								<td
-									class="px-3.5 py-2.5 first:pl-5 last:pr-5 border-y border-slate-200 dark:border-zink-500 Action"
-								>
-									<div class="flex gap-3">
-										<a
-											class="flex items-center justify-center size-8 transition-all duration-200 ease-linear rounded-md bg-slate-100 text-slate-500 hover:text-custom-500 hover:bg-custom-100 dark:bg-zink-600 dark:text-zink-200 dark:hover:bg-custom-500/20 dark:hover:text-custom-500"
-											href="/pages/account"
-											><LucideIcon name="Eye" class="inline-block size-3" />
+						{#if documentList}
+							{#each documentList as doc}
+								<tr>
+									<td
+										class="px-3.5 py-2.5 first:pl-5 last:pr-5 border-y border-slate-200 dark:border-zink-500 ID"
+										><a
+											href="#!"
+											class="transition-all duration-150 ease-linear text-custom-500 hover:text-custom-600"
+											>{doc._id}</a
+										></td
+									>
+									<td
+										class="px-3.5 py-2.5 first:pl-5 last:pr-5 border-y border-slate-200 dark:border-zink-500 Name"
+									>
+										<a href="#!" class="flex items-center gap-3">
+											<div class="size-6 rounded-full shrink-0 bg-slate-100">
+												<img src="" alt="" class="h-6 rounded-full" />
+											</div>
+											<h6 class="grow">{doc.original_name}</h6>
 										</a>
-										<a
-											href="#!"
-											class="flex items-center justify-center size-8 transition-all duration-200 ease-linear rounded-md edit-item-btn bg-slate-100 text-slate-500 hover:text-custom-500 hover:bg-custom-100 dark:bg-zink-600 dark:text-zink-200 dark:hover:bg-custom-500/20 dark:hover:text-custom-500"
-											><LucideIcon name="Pencil" class="size-4" /></a
-										>
-										<a
-											href="#!"
-											class="flex items-center justify-center size-8 transition-all duration-200 ease-linear rounded-md remove-item-btn bg-slate-100 text-slate-500 hover:text-custom-500 hover:bg-custom-100 dark:bg-zink-600 dark:text-zink-200 dark:hover:bg-custom-500/20 dark:hover:text-custom-500"
-											on:click={toggleDelete}><LucideIcon name="Trash2" class="size-4" /></a
-										>
-									</div>
-								</td>
-							</tr>
-						{/each}
+									</td>
+									<td
+										class="px-3.5 py-2.5 first:pl-5 last:pr-5 border-y border-slate-200 dark:border-zink-500 Role"
+										>{doc.assigned_name}</td
+									>
+									<td
+										class="px-3.5 py-2.5 first:pl-5 last:pr-5 border-y border-slate-200 dark:border-zink-500 Email"
+										>{doc.description}</td
+									>
+									<td
+										class="px-3.5 py-2.5 first:pl-5 last:pr-5 border-y border-slate-200 dark:border-zink-500 Phone"
+										>{doc.file_extension}</td
+									>
+									<td
+										class="px-3.5 py-2.5 first:pl-5 last:pr-5 border-y border-slate-200 dark:border-zink-500 Country"
+										>{doc.file_size}</td
+									>
+									<td
+										class="px-3.5 py-2.5 first:pl-5 last:pr-5 border-y border-slate-200 dark:border-zink-500 Country"
+										>{doc.storage_provider}</td
+									>
+									<td
+										class="px-3.5 py-2.5 first:pl-5 last:pr-5 border-y border-slate-200 dark:border-zink-500 Action"
+									>
+										<div class="flex gap-3">
+											<a
+												class="flex items-center justify-center size-8 transition-all duration-200 ease-linear rounded-md bg-slate-100 text-slate-500 hover:text-custom-500 hover:bg-custom-100 dark:bg-zink-600 dark:text-zink-200 dark:hover:bg-custom-500/20 dark:hover:text-custom-500"
+												href="/pages/account"
+												><LucideIcon name="Eye" class="inline-block size-3" />
+											</a>
+											<a
+												href="#!"
+												class="flex items-center justify-center size-8 transition-all duration-200 ease-linear rounded-md edit-item-btn bg-slate-100 text-slate-500 hover:text-custom-500 hover:bg-custom-100 dark:bg-zink-600 dark:text-zink-200 dark:hover:bg-custom-500/20 dark:hover:text-custom-500"
+												><LucideIcon name="Pencil" class="size-4" /></a
+											>
+											<a
+												href="#!"
+												class="flex items-center justify-center size-8 transition-all duration-200 ease-linear rounded-md remove-item-btn bg-slate-100 text-slate-500 hover:text-custom-500 hover:bg-custom-100 dark:bg-zink-600 dark:text-zink-200 dark:hover:bg-custom-500/20 dark:hover:text-custom-500"
+												on:click={() => confirmDelete(doc._id)}
+												><LucideIcon name="Trash2" class="size-4" /></a
+											>
+										</div>
+									</td>
+								</tr>
+							{/each}
+						{/if}
 					</tbody>
 				</table>
 			</div>
 			<div class="flex flex-col items-center gap-4 px-4 mt-4 md:flex-row" id="pagination-element">
 				<div class="grow">
-					<p class="text-slate-500 dark:text-zink-200">
-						Showing <b class="showing">10</b> of <b class="total-records">{documentList.length}</b> Results
-					</p>
+					<!-- <p class="text-slate-500 dark:text-zink-200">
+						Showing <b class="showing">10</b> of <b class="total-records">{documentList?.length}</b> Results
+					</p> -->
 				</div>
 
 				<div class="col-sm-auto mt-sm-0">
@@ -321,11 +339,11 @@
 				data-modal-close="addEmployeeModal"
 				id="addEmployee"
 				class="transition-all duration-200 ease-linear text-slate-400 hover:text-red-500"
-				><LucideIcon name="X" class="size-5" /></button
+				on:click={toggleAddModal}><LucideIcon name="X" class="size-5" /></button
 			>
 		</div>
 		<div class="max-h-[calc(theme('height.screen')_-_180px)] p-4 overflow-y-auto">
-			<form class="create-form" id="create-form">
+			<form class="create-form" id="create-form" on:submit={addDocument}>
 				<input type="hidden" value="" name="id" id="id" />
 				<input type="hidden" value="add" name="action" id="action" />
 				<input type="hidden" id="id-field" />
@@ -359,7 +377,11 @@
 								<div
 									class="border rounded border-slate-200 dark:border-zink-500 p-2 flex items-center"
 								>
-									<img class="w-12 h-12 rounded mr-3" src="/assets/images/new-document.png" alt="File Preview" />
+									<img
+										class="w-12 h-12 rounded mr-3"
+										src="/assets/images/new-document.png"
+										alt="File Preview"
+									/>
 									<div>
 										<p class="text-slate-500">{file.name}</p>
 										<p class="text-xs text-slate-400">{(file.size / 1024).toFixed(2)} KB</p>
@@ -384,7 +406,9 @@
 							type="text"
 							id="fileNameInput"
 							class="form-input border-slate-200 dark:border-zink-500 focus:outline-none focus:border-custom-500 disabled:bg-slate-100 dark:disabled:bg-zink-600 disabled:border-slate-300 dark:disabled:border-zink-500 dark:disabled:text-zink-200 disabled:text-slate-500 dark:text-zink-100 dark:bg-zink-700 dark:focus:border-custom-800 placeholder:text-slate-400 dark:placeholder:text-zink-200"
+							bind:value={fileName}
 							placeholder="File name"
+							required
 						/>
 					</div>
 					<div class="xl:col-span-12">
@@ -395,6 +419,7 @@
 							type="text"
 							id="descriptionInput"
 							class="form-input border-slate-200 dark:border-zink-500 focus:outline-none focus:border-custom-500 disabled:bg-slate-100 dark:disabled:bg-zink-600 disabled:border-slate-300 dark:disabled:border-zink-500 dark:disabled:text-zink-200 disabled:text-slate-500 dark:text-zink-100 dark:bg-zink-700 dark:focus:border-custom-800 placeholder:text-slate-400 dark:placeholder:text-zink-200"
+							bind:value={description}
 							placeholder="Description"
 							required
 						/>
@@ -442,9 +467,9 @@
 						on:click={toggleDelete}>Cancel</button
 					>
 					<button
-						type="submit"
+						type="button"
 						class="text-white bg-red-500 border-red-500 btn hover:text-white hover:bg-red-600 hover:border-red-600 focus:text-white focus:bg-red-600 focus:border-red-600 focus:ring focus:ring-red-100 active:text-white active:bg-red-600 active:border-red-600 active:ring active:ring-red-100 dark:ring-custom-400/20"
-						>Yes, Delete It!</button
+						on:click={deleteDocument}>Yes, Delete It!</button
 					>
 				</div>
 			</div>
