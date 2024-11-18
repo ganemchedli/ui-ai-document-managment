@@ -33,7 +33,7 @@
 
 			// navigate to the home page
 			setTimeout(() => {
-				goto('/');
+				goto('/pages/chat');
 			}, 500);
 
 			// finish the spinning
