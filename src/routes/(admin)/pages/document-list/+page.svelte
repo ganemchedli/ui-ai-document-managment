@@ -5,167 +5,173 @@
 	import Modal from '@components/Modal.svelte';
 	import Dropzone from 'svelte-file-dropzone';
 	import { t } from 'svelte-i18n';
-	import 'flatpickr/dist/flatpickr.css';
 	import { showErrorToast, showSuccessToast } from '@toasts';
 	import { onMount } from 'svelte';
 	import axios from '@config/axios';
 	import { headerWithMainToken } from '@helpers/auth-helper';
-	let file = null; // Single file reference
+
+	// State Variables
+	let file = null;
 	let fileName = '';
 	let description = '';
-	let eventNotFound = false;
-	let eventAlreadyCanceled = false;
-	let documentToDelete = null;
-	let fileRequest = {
-		uploadfile: null,
-		assigned_name: '',
-		description: ''
-	};
-	let headTitle = $t('docuemntsNotFound'); // TODO add translations
-
-	const handleFilesSelect = (event) => {
-		const selectedFile = event.detail.acceptedFiles[0]; // Only allow one file
-		if (selectedFile) {
-			file = selectedFile;
-		} else {
-			file = null;
-		}
-	};
-
-	const handleRemoveFile = () => {
-		file = null;
-		filePreview = null;
-	};
-
+	let currentDocumentId = null; // Tracks document ID for edits
+	let isAddModal = false;
+	let isEditMode = false; // Determines if we are in edit mode
 	let isDeleteModal = false;
+	let documentList = [];
+	let _id = null; // ID for delete requests
+
+	// Fetch documents on load
+	onMount(() => fetchDocuments());
+
+	// Toggles Add/Edit Modal
+	const toggleAddModal = () => {
+		isAddModal = !isAddModal;
+		if (!isAddModal) resetForm();
+	};
+
+	// Toggles Delete Modal
 	const toggleDelete = () => (isDeleteModal = !isDeleteModal);
 
-	let isAddModal = false;
-	const toggleAddModal = () => (isAddModal = !isAddModal);
+	// Resets Form Fields
+	const resetForm = () => {
+		fileName = '';
+		description = '';
+		file = null;
+		currentDocumentId = null;
+		isEditMode = false;
+	};
 
-	let documentList = [];
+	// Fetch all documents
 	const fetchDocuments = async () => {
 		try {
 			const res = await axios.get(`/documents/all`, {
 				headers: headerWithMainToken()
 			});
-
 			if (res?.status === 200) {
 				documentList = res.data.items;
 			}
-
-			// content
 		} catch (error) {
-			const status = error?.response?.status;
-			// 1.
-			if (status === 404) {
-				showErrorToast('Ops!', $t('appearToBeThatDocumentsDoesntExist'), 'top-center'); // TODO add transltion laters
-				headTitle = $t('docuemntsNotFound'); // TODO add translations
-				eventNotFound = true;
+			handleError(error);
+		}
+	};
+	const addDocument = async (e) => {
+		e.preventDefault();
+
+		// Create FormData object
+		const formData = new FormData();
+		formData.append('fileName', fileName || 'Untitled'); // Field for name
+		formData.append('description', description); // Field for description
+		if (file) formData.append('file', file); // Attach the file only if it exists
+
+		try {
+			let res;
+			if (isEditMode) {
+				// Update Document
+				let _id = currentDocumentId;
+				res = await axios.put(`/documents/edit/${_id}`, formData, {
+					headers: {
+						...headerWithMainToken(), // Include authorization headers
+						'Content-Type': 'multipart/form-data' // Explicitly set multipart/form-data
+					}
+				});
+			} else {
+				// Add New Document
+				res = await axios.post(`/documents/create`, formData, {
+					headers: {
+						...headerWithMainToken(), // Include authorization headers
+						'Content-Type': 'multipart/form-data' // Explicitly set multipart/form-data
+					}
+				});
 			}
 
-			// 2.
-			else if (status === 500) {
-				showErrorToast('Ops!', $t('500ServerError'), 'top-center');
-				headTitle = $t('opsServerError'); // TODO add translations
-				eventNotFound = true;
+			// Handle successful response
+			if (res?.status === 200 || res?.status === 204) {
+				const successMessage = isEditMode
+					? $t('docuementUpdatedSuccessfully')
+					: $t('documentCreatedSuccessfully');
+				showSuccessToast('Done!', successMessage, 'top-center');
+
+				// Update local document list without re-fetching
+				if (isEditMode) {
+					const docIndex = documentList.findIndex((doc) => doc._id === currentDocumentId);
+					if (docIndex !== -1) {
+						documentList[docIndex] = {
+							...documentList[docIndex],
+							assigned_name: fileName,
+							description
+						};
+					}
+				} else {
+					documentList = [...documentList, res.data];
+				}
 			}
+
+			// Close modal and refresh documents
+			toggleAddModal();
+			fetchDocuments();
+		} catch (error) {
+			// Handle errors
+			handleError(error);
 		}
 	};
 
+	// Sets up Document for Editing
+	const handleEdit = (doc) => {
+		currentDocumentId = doc._id;
+		fileName = doc.assigned_name;
+		description = doc.description;
+		file = null; // File won't be pre-filled
+		isEditMode = true;
+		toggleAddModal();
+	};
+
+	// Handles File Drop
+	const handleFilesSelect = (event) => {
+		const selectedFile = event.detail.acceptedFiles[0];
+		file = selectedFile || null;
+	};
+
+	// Removes File
+	const handleRemoveFile = () => {
+		file = null;
+	};
+
+	// Confirms Deletion of a Document
+	const confirmDelete = (id) => {
+		_id = id;
+		toggleDelete();
+	};
+
+	// Deletes Document
 	const deleteDocument = async () => {
 		try {
-			const res = await axios.delete(`/documents/delete/${documentToDelete}`, {
+			const res = await axios.delete(`/documents/delete/${_id}`, {
 				headers: headerWithMainToken()
 			});
 			if (res?.status === 200 || res?.status === 204) {
 				showSuccessToast('Done!', $t('docuementDeletedSuccessfully'), 'top-center');
+				// Remove document locally
+				documentList = documentList.filter((doc) => doc._id !== _id);
 			}
-		} catch (error) {
-			const status = error?.response?.status;
-			// 1.
-			if (status === 404) {
-				showErrorToast('Ops!', $t('appearToBeThatDocumentsDoesntExist'), 'top-center'); // TODO add transltion laters
-				headTitle = $t('docuemntsNotFound'); // TODO add translations
-				eventNotFound = true;
-			}
-
-			// 2.
-			else if (status === 500) {
-				showErrorToast('Ops!', $t('500ServerError'), 'top-center');
-				headTitle = $t('opsServerError'); // TODO add translations
-				eventNotFound = true;
-			}
-		}
-	};
-
-	const updateDocument = async () => {
-		try {
-			const res = await axios.put(`/documents/edit/`, fileRequest, {
-				params: id,
-				headers: headerWithMainToken()
-			});
-			if (res?.status === 200 || res?.status === 204) {
-				showSuccessToast('Done!', $t('docuementUpdatedSuccessfully'), 'top-center');
-			}
-		} catch (error) {
-			const status = error?.response?.status;
-			// 1.
-			if (status === 404) {
-				showErrorToast('Ops!', $t('appearToBeThatDocumentsDoesntExist'), 'top-center'); // TODO add transltion laters
-				headTitle = $t('docuemntsNotFound'); // TODO add translations
-				eventNotFound = true;
-			}
-
-			// 2.
-			else if (status === 500) {
-				showErrorToast('Ops!', $t('500ServerError'), 'top-center');
-				headTitle = $t('opsServerError'); // TODO add translations
-				eventNotFound = true;
-			}
-		}
-	};
-
-	const addDocument = async (e) => {
-		e.preventDefault();
-
-		const formData = new FormData();
-		formData.append('name', fileName || 'Untitled');
-		formData.append('description', description);
-		formData.append('file', file); // Append the single file
-
-		try {
-			const res = await axios.post(`/documents/create`, formData, {
-				headers: headerWithMainToken()
-			});
-			if (res?.status === 200 || res?.status === 204) {
-				showSuccessToast('Done!', $t('docuementUpdatedSuccessfully'), 'top-center');
-			}
-			// Reset form after successful submission
-			fileName = '';
-			description = '';
-			file = null;
-
-			toggleAddModal();
+			toggleDelete();
 			fetchDocuments();
 		} catch (error) {
-			const status = error?.response?.status;
-			// 1.
-			if (status === 500) {
-				showErrorToast('Ops!', $t('500ServerError'), 'top-center');
-				headTitle = $t('opsServerError'); // TODO add translations
-				eventNotFound = true;
-			}
+			handleError(error);
 		}
 	};
 
-	const confirmDelete = (id) => {
-		documentToDelete = id;
-		toggleDelete(); // Open the delete confirmation modal
+	// Handles API Errors
+	const handleError = (error) => {
+		const status = error?.response?.status;
+		if (status === 404) {
+			showErrorToast('Ops!', $t('appearToBeThatDocumentsDoesntExist'), 'top-center');
+		} else if (status === 500) {
+			showErrorToast('Ops!', $t('500ServerError'), 'top-center');
+		} else {
+			showErrorToast('Ops!', $t('somethingWentWrong'), 'top-center');
+		}
 	};
-	onMount(() => {
-		fetchDocuments();
-	});
 </script>
 
 <HeadTitle title="Sellers" />
@@ -282,9 +288,11 @@
 											</a>
 											<a
 												href="#!"
-												class="flex items-center justify-center size-8 transition-all duration-200 ease-linear rounded-md edit-item-btn bg-slate-100 text-slate-500 hover:text-custom-500 hover:bg-custom-100 dark:bg-zink-600 dark:text-zink-200 dark:hover:bg-custom-500/20 dark:hover:text-custom-500"
-												><LucideIcon name="Pencil" class="size-4" /></a
+												class="flex items-center justify-center size-8 rounded-md edit-item-btn"
+												on:click={() => handleEdit(doc)}
 											>
+												<LucideIcon name="Pencil" class="size-4" />
+											</a>
 											<a
 												href="#!"
 												class="flex items-center justify-center size-8 transition-all duration-200 ease-linear rounded-md remove-item-btn bg-slate-100 text-slate-500 hover:text-custom-500 hover:bg-custom-100 dark:bg-zink-600 dark:text-zink-200 dark:hover:bg-custom-500/20 dark:hover:text-custom-500"
@@ -334,44 +342,46 @@
 <Modal modal-center className="-translate-y-2/4" isOpen={isAddModal} toggle={toggleAddModal}>
 	<div class="w-screen md:w-[30rem] bg-white shadow rounded-md dark:bg-zink-600">
 		<div class="flex items-center justify-between p-4 border-b dark:border-zink-500">
-			<h5 class="text-16" id="addEmployeeLabel">Add Document</h5>
+			<h5 class="text-16">{isEditMode ? 'Edit Document' : 'Add Document'}</h5>
 			<button
 				data-modal-close="addEmployeeModal"
 				id="addEmployee"
 				class="transition-all duration-200 ease-linear text-slate-400 hover:text-red-500"
-				on:click={toggleAddModal}><LucideIcon name="X" class="size-5" /></button
+				on:click={toggleAddModal}
 			>
+				<LucideIcon name="X" class="size-5" />
+			</button>
 		</div>
 		<div class="max-h-[calc(theme('height.screen')_-_180px)] p-4 overflow-y-auto">
 			<form class="create-form" id="create-form" on:submit={addDocument}>
-				<input type="hidden" value="" name="id" id="id" />
-				<input type="hidden" value="add" name="action" id="action" />
-				<input type="hidden" id="id-field" />
+				<input type="hidden" value={isEditMode ? 'edit' : 'add'} name="action" />
 				<div
 					id="alert-error-msg"
 					class="hidden px-4 py-3 text-sm text-red-500 border border-transparent rounded-md bg-red-50 dark:bg-red-500/20"
 				></div>
 				<div class="grid grid-cols-1 gap-4 xl:grid-cols-12">
+					<!-- Dropzone -->
 					<div class="xl:col-span-12">
-						<h6 class="mb-4 text-15">Dropzone</h6>
-						<Dropzone
-							on:drop={handleFilesSelect}
-							maxFiles={1}
-							containerClasses="flex items-center justify-center border rounded-md cursor-pointer !bg-slate-100 dropzone !border-slate-200 dark:!bg-zink-600 dark:!border-zink-500 dz-clickable"
-						>
-							<div class="w-full py-5 text-lg text-center dz-message needsclick">
-								<div class="mb-3">
-									<LucideIcon
-										name="UploadCloud"
-										class="block size-12 mx-auto text-slate-500 fill-slate-200 dark:text-zink-200 dark:fill-zink-500"
-									/>
+						{#if !isEditMode}
+							<h6 class="mb-4 text-15">Dropzone</h6>
+							<Dropzone
+								on:drop={handleFilesSelect}
+								maxFiles={1}
+								containerClasses="flex items-center justify-center border rounded-md cursor-pointer !bg-slate-100 dropzone !border-slate-200 dark:!bg-zink-600 dark:!border-zink-500 dz-clickable"
+							>
+								<div class="w-full py-5 text-lg text-center dz-message needsclick">
+									<div class="mb-3">
+										<LucideIcon
+											name="UploadCloud"
+											class="block size-12 mx-auto text-slate-500 fill-slate-200 dark:text-zink-200 dark:fill-zink-500"
+										/>
+									</div>
+									<h5 class="mb-0 font-normal text-slate-500 text-15">
+										Drag and drop your files or <a href="#!">browse</a> your files
+									</h5>
 								</div>
-
-								<h5 class="mb-0 font-normal text-slate-500 text-15">
-									Drag and drop your files or <a href="#!">browse</a> your files
-								</h5>
-							</div>
-						</Dropzone>
+							</Dropzone>
+						{/if}
 						{#if file}
 							<div class="mt-4">
 								<div
@@ -397,7 +407,7 @@
 							</div>
 						{/if}
 					</div>
-
+					<!-- Filename -->
 					<div class="xl:col-span-12">
 						<label for="fileNameInput" class="inline-block mb-2 text-base font-medium"
 							>Filename</label
@@ -411,6 +421,7 @@
 							required
 						/>
 					</div>
+					<!-- Description -->
 					<div class="xl:col-span-12">
 						<label for="descriptionInput" class="inline-block mb-2 text-base font-medium"
 							>Description</label
@@ -425,26 +436,29 @@
 						/>
 					</div>
 				</div>
+				<!-- Buttons -->
 				<div class="flex justify-end gap-2 mt-4">
 					<button
 						type="reset"
 						id="close-modal"
 						data-modal-close="addEmployeeModal"
 						class="text-red-500 bg-white btn hover:text-red-500 hover:bg-red-100 focus:text-red-500 focus:bg-red-100 active:text-red-500 active:bg-red-100 dark:bg-zink-600 dark:hover:bg-red-500/10 dark:focus:bg-red-500/10 dark:active:bg-red-500/10"
-						on:click={toggleAddModal}>Cancel</button
+						on:click={toggleAddModal}
 					>
+						Cancel
+					</button>
 					<button
 						type="submit"
 						id="addNew"
 						class="text-white btn bg-custom-500 border-custom-500 hover:text-white hover:bg-custom-600 hover:border-custom-600 focus:text-white focus:bg-custom-600 focus:border-custom-600 focus:ring focus:ring-custom-100 active:text-white active:bg-custom-600 active:border-custom-600 active:ring active:ring-custom-100 dark:ring-custom-400/20"
-						>Add Document</button
 					>
+						{isEditMode ? 'Update Document' : 'Add Document'}
+					</button>
 				</div>
 			</form>
 		</div>
 	</div>
 </Modal>
-
 <Modal modal-center className="-translate-y-2/4" isOpen={isDeleteModal} toggle={toggleDelete}>
 	<div class="w-screen md:w-[25rem] bg-white shadow rounded-md dark:bg-zink-600">
 		<div class="max-h-[calc(theme('height.screen')_-_180px)] overflow-y-auto px-6 py-8">
