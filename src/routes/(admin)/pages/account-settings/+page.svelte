@@ -1,14 +1,77 @@
 <script>
-	import Dropdown from '@components/Dropdown.svelte';
-	import DropdownToggle from '@components/DropdownToggle.svelte';
-	import DropdownMenu from '@components/DropdownMenu.svelte';
 	import HeadTitle from '@components/HeadTitle.svelte';
+	import { t } from 'svelte-i18n';
+	import { showErrorToast, showSuccessToast } from '@toasts';
 	import LucideIcon from '@components/LucideIcon.svelte';
 	import Breadcrumb from '@components/Breadcrumb.svelte';
 	import Flatpickr from 'svelte-flatpickr';
 	import 'flatpickr/dist/flatpickr.css';
+	import axios from '@config/axios';
+	import { onMount } from 'svelte';
+	import { headerWithMainToken } from '@helpers/auth-helper';
 
 	let tabId = 'personal';
+	let userData = {};
+	let formData = {
+        fullName: '',
+        title: '',
+        email: '',
+        phoneNumber: '',
+        language: '',
+    };
+
+	onMount(async () => {
+		await fetchUserSettings();
+	});
+
+	const fetchUserSettings = async () => {
+		console.log('fetchUserSettings called');
+		try {
+			const res = await axios.get(`/settings/view`, {
+				headers: headerWithMainToken()
+			});
+			console.log('Response received:', res);
+			if (res?.status === 200) {
+				userData = res.data.profile;
+				formData = { ...userData };  
+			}
+		} catch (error) {
+			handleError(error);
+		}
+	};
+
+	const updateUserSettings = async (updatedData) => {
+		try {
+			const res = await axios.put(`/settings/edit/view`, updatedData, {
+				headers: headerWithMainToken() // Replace with your actual token generator
+			});
+
+			if (res?.status === 202) {
+				console.log('Update successful:', res.data.message);
+				showSuccessToast('Success', 'Profile updated successfully!', 'top-center');
+			}
+			fetchUserSettings();
+		} catch (error) {
+			handleError(error);
+		}
+	};
+	
+    // Function for form submission
+    const handleFormSubmit = async () => {
+        console.log("Submitting updated profile:", formData);
+        await updateUserSettings(formData);
+    };
+	// Handles API Errors
+	const handleError = (error) => {
+		const status = error?.response?.status;
+		if (status === 404) {
+			showErrorToast('Ops!', $t('appearToBeThatDocumentsDoesntExist'), 'top-center');
+		} else if (status === 500) {
+			showErrorToast('Ops!', $t('500ServerError'), 'top-center');
+		} else {
+			showErrorToast('Ops!', $t('somethingWentWrong'), 'top-center');
+		}
+	};
 </script>
 
 <HeadTitle title="Account Settings" />
@@ -21,10 +84,10 @@
 			<div class="grid grid-cols-1 gap-5 lg:grid-cols-12 2xl:grid-cols-12">
 				<div class="lg:col-span-2 2xl:col-span-1">
 					<div
-						class="relative inline-block size-20 rounded-full shadow-md bg-slate-100 profile-user xl:size-28"
+						class="relative inline-block size-20 rounded-full shadow-md bg-slate-100 profile-user xl:size-20"
 					>
 						<img
-							src="/assets/images/users/avatar-1.png"
+							src={userData?.avatar}
 							alt=""
 							class="object-cover border-0 rounded-full img-thumbnail user-profile-image"
 						/>
@@ -51,140 +114,15 @@
 				<!--end col-->
 				<div class="lg:col-span-10 2xl:col-span-9">
 					<h5 class="mb-1">
-						Paula Keenan
+						{userData?.fullName}
 						<LucideIcon
 							name="BadgeCheck"
 							class="inline-block size-4 text-sky-500 fill-sky-100 dark:fill-custom-500/20"
 						/>
 					</h5>
-					<div class="flex gap-3 mb-4">
-						<p class="text-slate-500 dark:text-zink-200">
-							<LucideIcon
-								name="UserCircle"
-								class="inline-block size-4 ltr:mr-1 rtl:ml-1 text-slate-500 dark:text-zink-200 fill-slate-100 dark:fill-zink-500"
-							/>
-							CEO & Founder
-						</p>
-						<p class="text-slate-500 dark:text-zink-200">
-							<LucideIcon
-								name="MapPin"
-								class="inline-block size-4 ltr:mr-1 rtl:ml-1 text-slate-500 dark:text-zink-200 fill-slate-100 dark:fill-zink-500"
-							/>
-							Los Angeles, California
-						</p>
-					</div>
-					<ul
-						class="flex flex-wrap gap-3 mt-4 text-center divide-x divide-slate-200 dark:divide-zink-500 rtl:divide-x-reverse"
-					>
-						<li class="px-5">
-							<h5>1542</h5>
-							<p class="text-slate-500 dark:text-zink-200">Following</p>
-						</li>
-						<li class="px-5">
-							<h5>10.65k</h5>
-							<p class="text-slate-500 dark:text-zink-200">Followers</p>
-						</li>
-						<li class="px-5">
-							<h5>115+</h5>
-							<p class="text-slate-500 dark:text-zink-200">Products</p>
-						</li>
-					</ul>
-					<p class="mt-4 text-slate-500 dark:text-zink-200">
-						Strong leader and negotiator adept at driving collaboration and innovation. Highly
-						accomplished CEO & Founder with 10+ years of experience creating, launching and leading
-						successful business ventures. Proven ability to build relationships, drive customer
-						loyalty and increase profitability.
+					<p class="mb-1">
+						{userData?.title}
 					</p>
-					<div class="flex gap-2 mt-4">
-						<a
-							href="#!"
-							class="flex items-center justify-center transition-all duration-200 ease-linear rounded size-9 text-sky-500 bg-sky-100 hover:bg-sky-200 dark:bg-sky-500/20 dark:hover:bg-sky-500/30"
-						>
-							<LucideIcon name="Facebook" class="size-4" />
-						</a>
-						<a
-							href="#!"
-							class="flex items-center justify-center text-pink-500 transition-all duration-200 ease-linear bg-pink-100 rounded size-9 hover:bg-pink-200 dark:bg-pink-500/20 dark:hover:bg-pink-500/30"
-						>
-							<LucideIcon name="Instagram" class="size-4" />
-						</a>
-						<a
-							href="#!"
-							class="flex items-center justify-center text-red-500 transition-all duration-200 ease-linear bg-red-100 rounded size-9 hover:bg-red-200 dark:bg-red-500/20 dark:hover:bg-red-500/30"
-						>
-							<LucideIcon name="Globe" class="size-4" />
-						</a>
-						<a
-							href="#!"
-							class="flex items-center justify-center transition-all duration-200 ease-linear rounded text-custom-500 bg-custom-100 size-9 hover:bg-custom-200 dark:bg-custom-500/20 dark:hover:bg-custom-500/30"
-						>
-							<LucideIcon name="Linkedin" class="size-4" />
-						</a>
-						<a
-							href="#!"
-							class="flex items-center justify-center text-pink-500 transition-all duration-200 ease-linear bg-pink-100 rounded size-9 hover:bg-pink-200 dark:bg-pink-500/20 dark:hover:bg-pink-500/30"
-						>
-							<LucideIcon name="Dribbble" class="size-4" />
-						</a>
-						<a
-							href="#!"
-							class="flex items-center justify-center transition-all duration-200 ease-linear rounded size-9 text-slate-500 bg-slate-100 hover:bg-slate-200 dark:bg-zink-600 dark:hover:bg-zink-500"
-						>
-							<LucideIcon name="Github" class="size-4" />
-						</a>
-					</div>
-				</div>
-				<div class="lg:col-span-12 2xl:col-span-2">
-					<div class="flex gap-2 2xl:justify-end">
-						<a
-							href="mailto:themesdesign@gmail.com"
-							class="flex items-center justify-center size-[37.5px] p-0 text-slate-500 btn bg-slate-100 hover:text-white hover:bg-slate-600 focus:text-white focus:bg-slate-600 focus:ring focus:ring-slate-100 active:text-white active:bg-slate-600 active:ring active:ring-slate-100 dark:bg-slate-500/20 dark:text-slate-400 dark:hover:bg-slate-500 dark:hover:text-white dark:focus:bg-slate-500 dark:focus:text-white dark:active:bg-slate-500 dark:active:text-white dark:ring-slate-400/20"
-						>
-							<LucideIcon name="Mail" class="size-4" />
-						</a>
-						<button
-							type="button"
-							class="text-white transition-all duration-200 ease-linear btn bg-custom-500 border-custom-500 hover:text-white hover:bg-custom-600 hover:border-custom-600 focus:text-white focus:bg-custom-600 focus:border-custom-600 focus:ring focus:ring-custom-100 active:text-white active:bg-custom-600 active:border-custom-600 active:ring active:ring-custom-100 dark:ring-custom-400/20"
-							>Hire Us</button
-						>
-						<Dropdown className="relative" direction="bottom-start">
-							<DropdownToggle
-								className="flex items-center justify-center size-[37.5px] dropdown-toggle p-0 text-slate-500 btn bg-slate-100 hover:text-white hover:bg-slate-600 focus:text-white focus:bg-slate-600 focus:ring focus:ring-slate-100 active:text-white active:bg-slate-600 active:ring active:ring-slate-100 dark:bg-slate-500/20 dark:text-slate-400 dark:hover:bg-slate-500 dark:hover:text-white dark:focus:bg-slate-500 dark:focus:text-white dark:active:bg-slate-500 dark:active:text-white dark:ring-slate-400/20"
-							>
-								<LucideIcon name="MoreHorizontal" class="size-4" />
-							</DropdownToggle>
-							<DropdownMenu
-								tag="ul"
-								class="absolute z-50 py-2 mt-1 ltr:text-left rtl:text-right list-none bg-white rounded-md shadow-md dropdown-menu min-w-[10rem] dark:bg-zink-600"
-							>
-								<li class="px-3 mb-2 text-sm text-slate-500">Payments</li>
-								<li>
-									<a
-										class="block px-4 py-1.5 text-base font-medium transition-all duration-200 ease-linear text-slate-600 dropdown-item hover:bg-slate-100 hover:text-slate-500 focus:bg-slate-100 focus:text-slate-500 dark:text-zink-100 dark:hover:bg-zink-500 dark:hover:text-zink-200 dark:focus:bg-zink-500 dark:focus:text-zink-200"
-										href="#!">Create Invoice</a
-									>
-								</li>
-								<li>
-									<a
-										class="block px-4 py-1.5 text-base font-medium transition-all duration-200 ease-linear text-slate-600 dropdown-item hover:bg-slate-100 hover:text-slate-500 focus:bg-slate-100 focus:text-slate-500 dark:text-zink-100 dark:hover:bg-zink-500 dark:hover:text-zink-200 dark:focus:bg-zink-500 dark:focus:text-zink-200"
-										href="#!">Pending Billing</a
-									>
-								</li>
-								<li>
-									<a
-										class="block px-4 py-1.5 text-base font-medium transition-all duration-200 ease-linear text-slate-600 dropdown-item hover:bg-slate-100 hover:text-slate-500 focus:bg-slate-100 focus:text-slate-500 dark:text-zink-100 dark:hover:bg-zink-500 dark:hover:text-zink-200 dark:focus:bg-zink-500 dark:focus:text-zink-200"
-										href="#!">Genarate Bill</a
-									>
-								</li>
-								<li>
-									<a
-										class="block px-4 py-1.5 text-base font-medium transition-all duration-200 ease-linear text-slate-600 dropdown-item hover:bg-slate-100 hover:text-slate-500 focus:bg-slate-100 focus:text-slate-500 dark:text-zink-100 dark:hover:bg-zink-500 dark:hover:text-zink-200 dark:focus:bg-zink-500 dark:focus:text-zink-200"
-										href="#!">Subscription</a
-									>
-								</li>
-							</DropdownMenu>
-						</Dropdown>
-					</div>
 				</div>
 			</div>
 			<!--end grid-->
@@ -225,32 +163,32 @@
 					<p class="mb-4 text-slate-500 dark:text-zink-200">
 						Update your photo and personal details here easily.
 					</p>
-					<form action="#!">
+					<form on:submit|preventDefault={handleFormSubmit}>
 						<div class="grid grid-cols-1 gap-5 xl:grid-cols-12">
 							<div class="xl:col-span-6">
 								<label for="inputValue" class="inline-block mb-2 text-base font-medium"
-									>First Name</label
+									>Full Name</label
 								>
 								<input
 									type="text"
 									id="inputValue"
 									class="form-input border-slate-200 dark:border-zink-500 focus:outline-none focus:border-custom-500 disabled:bg-slate-100 dark:disabled:bg-zink-600 disabled:border-slate-300 dark:disabled:border-zink-500 dark:disabled:text-zink-200 disabled:text-slate-500 dark:text-zink-100 dark:bg-zink-700 dark:focus:border-custom-800 placeholder:text-slate-400 dark:placeholder:text-zink-200"
 									placeholder="Enter your value"
-									value="Paula"
-								/>
+									bind:value={formData.fullName}
+									/>
 							</div>
 							<!--end col-->
+
 							<div class="xl:col-span-6">
-								<label for="inputValue" class="inline-block mb-2 text-base font-medium"
-									>Last Name</label
+								<label for="inputValue" class="inline-block mb-2 text-base font-medium">Title</label
 								>
 								<input
 									type="text"
 									id="inputValue"
 									class="form-input border-slate-200 dark:border-zink-500 focus:outline-none focus:border-custom-500 disabled:bg-slate-100 dark:disabled:bg-zink-600 disabled:border-slate-300 dark:disabled:border-zink-500 dark:disabled:text-zink-200 disabled:text-slate-500 dark:text-zink-100 dark:bg-zink-700 dark:focus:border-custom-800 placeholder:text-slate-400 dark:placeholder:text-zink-200"
 									placeholder="Enter your value"
-									value="Keenan"
-								/>
+									bind:value={formData.title}
+									/>
 							</div>
 							<!--end col-->
 							<div class="xl:col-span-6">
@@ -262,8 +200,8 @@
 									id="inputValue"
 									class="form-input border-slate-200 dark:border-zink-500 focus:outline-none focus:border-custom-500 disabled:bg-slate-100 dark:disabled:bg-zink-600 disabled:border-slate-300 dark:disabled:border-zink-500 dark:disabled:text-zink-200 disabled:text-slate-500 dark:text-zink-100 dark:bg-zink-700 dark:focus:border-custom-800 placeholder:text-slate-400 dark:placeholder:text-zink-200"
 									placeholder="+214 8456 8459 23"
-									value="+214 8456 8459 23"
-								/>
+									bind:value={formData.phoneNumber}
+									/>
 							</div>
 							<!--end col-->
 							<div class="xl:col-span-6">
@@ -275,23 +213,11 @@
 									id="inputValue"
 									class="form-input border-slate-200 dark:border-zink-500 focus:outline-none focus:border-custom-500 disabled:bg-slate-100 dark:disabled:bg-zink-600 disabled:border-slate-300 dark:disabled:border-zink-500 dark:disabled:text-zink-200 disabled:text-slate-500 dark:text-zink-100 dark:bg-zink-700 dark:focus:border-custom-800 placeholder:text-slate-400 dark:placeholder:text-zink-200"
 									placeholder="Enter your email address"
-									value="richardmarshall@tailwick.com"
-								/>
+									bind:value={formData.email}
+									/>
 							</div>
 							<!--end col-->
-							<div class="xl:col-span-6">
-								<label for="joiningDateInput" class="inline-block mb-2 text-base font-medium"
-									>Birth of Date</label
-								>
-								<Flatpickr
-									options={{ dateFormat: 'd M, Y' }}
-									class="form-input border-slate-200 dark:border-zink-500 focus:outline-none focus:border-custom-500 disabled:bg-slate-100 dark:disabled:bg-zink-600 disabled:border-slate-300 dark:disabled:border-zink-500 dark:disabled:text-zink-200 disabled:text-slate-500 dark:text-zink-100 dark:bg-zink-700 dark:focus:border-custom-800 placeholder:text-slate-400 dark:placeholder:text-zink-200"
-									name="date"
-									placeholder="Select date"
-								/>
-							</div>
-							<!--end col-->
-							<div class="xl:col-span-6">
+							<!-- <div class="xl:col-span-6">
 								<label for="joiningDateInput" class="inline-block mb-2 text-base font-medium"
 									>Joining Date</label
 								>
@@ -301,74 +227,14 @@
 									name="date"
 									placeholder="Select date"
 								/>
-							</div>
-							<!--end col-->
-							<div class="xl:col-span-4">
-								<label for="inputValue" class="inline-block mb-2 text-base font-medium">City</label>
-								<select
-									class="form-select border-slate-200 dark:border-zink-500 focus:outline-none focus:border-custom-500 disabled:bg-slate-100 dark:disabled:bg-zink-600 disabled:border-slate-300 dark:disabled:border-zink-500 dark:disabled:text-zink-200 disabled:text-slate-500 dark:text-zink-100 dark:bg-zink-700 dark:focus:border-custom-800 placeholder:text-slate-400 dark:placeholder:text-zink-200"
-									id="choices-single-no-sorting"
-									name="choices-single-no-sorting"
-									data-choices
-									data-choices-sorting-false
-								>
-									<option value="Madrid">Madrid</option>
-									<option value="Toronto">Toronto</option>
-									<option value="Vancouver">Vancouver</option>
-									<option value="London">London</option>
-									<option value="Manchester">Manchester</option>
-									<option value="Liverpool">Liverpool</option>
-									<option value="Paris">Paris</option>
-									<option value="Malaga">Malaga</option>
-									<option value="Washington" disabled>Washington</option>
-									<option value="Lyon">Lyon</option>
-									<option value="Marseille">Marseille</option>
-									<option value="Hamburg">Hamburg</option>
-									<option value="Munich">Munich</option>
-									<option value="Barcelona">Barcelona</option>
-									<option value="Berlin">Berlin</option>
-									<option value="Montreal">Montreal</option>
-									<option value="New York">New York</option>
-									<option value="Michigan">Michigan</option>
-								</select>
-							</div>
-							<!--end col-->
-							<div class="xl:col-span-4">
-								<label for="inputValue" class="inline-block mb-2 text-base font-medium"
-									>Country</label
-								>
-								<select
-									id="choices-single-no-sorting"
-									name="choices-single-no-sorting"
-									class="form-select border-slate-200 dark:border-zink-500 focus:outline-none focus:border-custom-500 disabled:bg-slate-100 dark:disabled:bg-zink-600 disabled:border-slate-300 dark:disabled:border-zink-500 dark:disabled:text-zink-200 disabled:text-slate-500 dark:text-zink-100 dark:bg-zink-700 dark:focus:border-custom-800 placeholder:text-slate-400 dark:placeholder:text-zink-200"
-								>
-									<option value="Madrid">USA</option>
-									<option value="Toronto">Toronto</option>
-									<option value="Vancouver">Vancouver</option>
-									<option value="London">London</option>
-									<option value="Manchester">Manchester</option>
-									<option value="Liverpool">Liverpool</option>
-									<option value="Paris">Paris</option>
-									<option value="Malaga">Malaga</option>
-									<option value="Washington" disabled>Washington</option>
-									<option value="Lyon">Lyon</option>
-									<option value="Marseille">Marseille</option>
-									<option value="Hamburg">Hamburg</option>
-									<option value="Munich">Munich</option>
-									<option value="Barcelona">Barcelona</option>
-									<option value="Berlin">Berlin</option>
-									<option value="Montreal">Montreal</option>
-									<option value="New York">New York</option>
-									<option value="Michigan">Michigan</option>
-								</select>
-							</div>
-							<!--end col-->
+							</div> -->
 						</div>
 						<!--end grid-->
 						<div class="flex justify-end mt-6 gap-x-4">
 							<button
 								type="button"
 								class="text-white btn bg-custom-500 border-custom-500 hover:text-white hover:bg-custom-600 hover:border-custom-600 focus:text-white focus:bg-custom-600 focus:border-custom-600 focus:ring focus:ring-custom-100 active:text-white active:bg-custom-600 active:border-custom-600 active:ring active:ring-custom-100 dark:ring-custom-400/20"
+								on:click={handleFormSubmit}
 								>Updates</button
 							>
 							<button
@@ -381,11 +247,9 @@
 					<!--end form-->
 				</div>
 			</div>
-
-			
 		</div>
 		<!--end tab pane-->
-		
+
 		<div class="tab-pane {tabId == 'privacyPolicy' ? 'block' : 'hidden'}" id="followersTabs">
 			<div class="card">
 				<div class="card-body">

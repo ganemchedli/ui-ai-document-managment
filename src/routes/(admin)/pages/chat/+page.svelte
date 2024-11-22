@@ -69,7 +69,7 @@
 </script>
 
 <svelte:head>
-	<link rel="stylesheet" href="/assets/libs/prismjs/themes/prism-okaidia.css" />
+	<!-- <link rel="stylesheet" href="/assets/libs/prismjs/themes/prism-okaidia.css" /> -->
 </svelte:head>
 <HeadTitle title="Chat" />
 

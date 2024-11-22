@@ -13,10 +13,7 @@
 		}
 		goto('/account/login'); // Redirect to login after logout
 	}
-
-	const profileData  = extractUserProfileData();
-
-	console.log(profileData)
+	const profileData = extractUserProfileData();
 </script>
 
 <Dropdown className="relative flex items-center h-header" direction="bottom-start">
