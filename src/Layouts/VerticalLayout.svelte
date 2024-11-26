@@ -1,11 +1,19 @@
 <script>
+	// Svelte imports
 	import { onMount, afterUpdate, onDestroy } from 'svelte';
 	import { browser } from '$app/environment';
-	import data from '@data/Layoutmenudata';
 	import { page } from '$app/stores';
+
+	// Static data
+	import data from '@data/Layoutmenudata';
+
+	// Components
 	import LucideIcon from '@components/LucideIcon.svelte';
+
+	// Translation
 	import { _ } from 'svelte-i18n';
 
+	// ---------------------------------------------------------------------------------
 	// after routeing complete call afterUpdate function
 	afterUpdate(() => {
 		document.body.classList.remove('overflow-hidden');

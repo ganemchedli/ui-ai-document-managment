@@ -1,11 +1,18 @@
 <script>
+	// Components
 	import VerticalLayout from './VerticalLayout.svelte';
-	import 'overlayscrollbars/styles/overlayscrollbars.css';
-	import { OverlayScrollbars } from 'overlayscrollbars';
-	import { onMount } from 'svelte';
 	import HorizontalLayout from './HorizontalLayout.svelte';
 
+	// Svelte imports
+	import { onMount } from 'svelte';
+
+	// Styling
+	import 'overlayscrollbars/styles/overlayscrollbars.css';
+	import { OverlayScrollbars } from 'overlayscrollbars';
+
+	// Props
 	export let layout;
+	// ---------------------------------------------------------------------------
 	const options = {
 		scrollbars: {
 			visibility: 'auto', // You can adjust the visibility ('auto', 'hidden', 'visible')

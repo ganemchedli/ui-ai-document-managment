@@ -1,9 +1,16 @@
 <script>
+	// Svelte Imports
 	import { onMount, afterUpdate } from 'svelte';
-	import data from '@data/Layoutmenudata';
 	import { page } from '$app/stores';
+
+	// Components
+	import data from '@data/Layoutmenudata';
 	import LucideIcon from '@components/LucideIcon.svelte';
+
+	// i18n
 	import { _ } from 'svelte-i18n';
+
+	// Packages
 	import { createPopper } from '@popperjs/core';
 
 	let navData = data.Navdata;

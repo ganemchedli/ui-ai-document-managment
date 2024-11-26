@@ -1,6 +1,7 @@
 // toast.js
 import { toasts } from 'svelte-toasts';
 
+// @utility: custom success toast
 export function showSuccessToast(title = '', description = '', placement = 'bottom-right') {
 	toasts.add({
 		title,
@@ -12,6 +13,7 @@ export function showSuccessToast(title = '', description = '', placement = 'bott
 	});
 }
 
+// @utility: custom error toast
 export function showErrorToast(title = '', description = '', placement = 'bottom-right') {
 	toasts.add({
 		title,

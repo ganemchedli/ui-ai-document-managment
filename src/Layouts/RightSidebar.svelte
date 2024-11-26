@@ -1,8 +1,13 @@
 <script>
+	// Svelte imports
 	import { browser } from '$app/environment';
+	import { createEventDispatcher, onDestroy, onMount } from 'svelte';
+
+	// Components
 	import LucideIcon from '@components/LucideIcon.svelte';
 	import Drawer from '@components/Drawer.svelte';
-	import { createEventDispatcher, onDestroy, onMount } from 'svelte';
+
+	// Extra Packages
 	import { OverlayScrollbars } from 'overlayscrollbars';
 
 	export let layout;

@@ -5,10 +5,7 @@ const deploymentMode = {
 };
 // -------------------------------------------------------------------------------
 // ** BASE path end point
-export const BASE_URL_PATH = deploymentMode?.production
-	? ''
-	: 'http://localhost:8000';
-
+export const BASE_URL_PATH = deploymentMode?.production ? '' : 'http://localhost:8000';
 
 // ** =>
 export default axios.create({
@@ -21,4 +18,3 @@ export const OAuthLinks = {
 	googleLink: `${BASE_URL_PATH}/client/sign-in/google`,
 	outlookLink: `${BASE_URL_PATH}/client/sign-in/outlook`
 };
-
